@@ -1,0 +1,12 @@
+--------------------------------PageSize
+PageSize::GetPageSize Function:
+
+It returns the size of a memory page on the system.
+It utilizes a lambda function during static initialization to determine the page size. This ensures the page size is computed only once and the value is stored and returned in subsequent calls without recomputation.
+
+
+Platform-Specific Implementation:
+
+The code checks for platform-specific compilation flags to determine how to get the page size.
+For WebAssembly (__wasm__) or asm.js (__asmjs__), it uses the getpagesize() function.
+For other platforms, it uses the sysconf(_SC_PAGESIZE) function.

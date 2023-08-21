@@ -1,0 +1,17 @@
+The provided section defines a function GetPageSize() that returns the system page size, which is a crucial parameter for memory management.
+
+GetPageSize Function:
+
+It returns the size of a memory page on the system.
+It utilizes a lambda function during static initialization to determine the page size. This ensures the page size is computed only once and the value is stored and returned in subsequent calls without recomputation.
+
+Platform-Specific Implementation:
+
+The code checks for platform-specific compilation flags to determine how to get the page size.
+For WebAssembly (__wasm__) or asm.js (__asmjs__), it uses the getpagesize() function.
+For other platforms, it uses the sysconf(_SC_PAGESIZE) function.
+
+
+4KB (4096 bytes): 这是许多现代操作系统和计算机架构中的标准页面大小，例如x86和x86-64。
+2MB, 4MB: 这些大页面（通常称为“超级页面”或“大页面”）在某些场景中可以提高性能，尤其是在需要处理大量数据的应用中。例如，x86-64架构支持2MB的大页面。
+1GB: 在x86-64架构中，还有1GB的超大页面。

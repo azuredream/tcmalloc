@@ -1,0 +1,124 @@
+
+这是tcmalloc库中的一个头文件，定义了PageHeap类。tcmalloc是Google开发的一个高效的内存分配器。让我为您简要介绍一下此代码的关键内容：
+
+命名空间：此代码在tcmalloc::tcmalloc_internal命名空间下。
+
+PageHeap类：这是主要的类，继承自PageAllocatorInterface。
+
+主要公共函数：
+
+New: 为指定数量的页分配一个连续的内存块。
+NewAligned: 类似于New，但返回的范围按照指定的页对齐。
+Delete: 删除一个给定的范围。
+stats: 返回内存统计。
+GetSmallSpanStats 和 GetLargeSpanStats: 分别返回小范围和大范围的统计。
+ReleaseAtLeastNPages: 尝试释放至少指定数量的页面。
+Print 和 PrintInPbtxt: 分别以常规和pbtxt格式打印有关页堆的统计信息。
+私有数据成员和函数：
+
+SpanListPair: 结构，包含两个列表 - 正常的和已返回给系统的。
+large_ 和 free_: 分别用于存储大范围和小范围的列表。
+stats_: 存储系统、空闲和未映射字节的统计。
+其他多个私有函数，如GrowHeap、Carve、AllocLarge等，它们是类的内部实现细节。
+线程注解：代码使用absl/base/thread_annotations.h提供的线程注解来标注哪些函数需要特定的锁。这有助于保证多线程下的正确性。
+
+如果您有关于此代码的任何具体问题，请告诉我，我会尽量帮助您解答。
+
+
+The PageHeap class is a key component in the tcmalloc (Thread-Caching Malloc) library, a high-performance memory allocator developed by Google. Let's break down the primary responsibilities and features of this class based on the provided code:
+
+Purpose: PageHeap manages large chunks of memory, known as spans. These spans are made up of one or more pages.
+
+Memory Allocation:
+
+New(): Allocates a span of "n" pages.
+NewAligned(): Allocates a span that is aligned to a particular boundary.
+AllocLarge(): Allocates a large span of a specific length.
+Memory Deallocation:
+
+Delete(): Deletes a given span.
+MergeIntoFreeList(): Merges a span with neighboring spans and adds it to the free list.
+PrependToFreeList(): Adds a span to the front of the free list.
+RemoveFromFreeList(): Removes a span from its free list.
+Memory Management and Efficiency:
+
+GrowHeap(): Attempts to increase the size of the heap.
+Carve(): Splits a span into two based on a given size.
+ReleaseAtLeastNPages(): Releases a specified number of pages back to the OS for reuse.
+ReleaseLastNormalSpan(): Releases the last span in the list back to the OS.
+Span Searching and Handling:
+
+SearchFreeAndLargeLists(): Searches for a span of size "n" in the free and large span lists.
+AllocateSpan(): Allocates a span and determines if it came from a returned span.
+RecordSpan(): Records a span in the internal system.
+Statistics and Information:
+
+stats(): Returns statistics about the page heap.
+GetSmallSpanStats() and GetLargeSpanStats(): Provides statistics about small and large spans, respectively.
+Print() and PrintInPbtxt(): Outputs details and statistics about the page heap in different formats.
+Data Structures:
+
+SpanListPair: Contains two lists of spans - one for regular spans and another for spans whose memory has been returned to the OS.
+large_ and free_: Lists to keep track of large spans and free spans of various sizes.
+Concurrency:
+
+Many of the methods have ABSL_EXCLUSIVE_LOCKS_REQUIRED(pageheap_lock) as an attribute, indicating that a lock must be acquired before these methods can be invoked, ensuring thread safety.
+Testing and Invariant Checking:
+
+Check(): Performs invariant tests on the internal structures to ensure consistency and correctness.
+Overall, PageHeap is designed to handle memory at the page level efficiently, with careful management of free and in-use spans and optimizations to reduce fragmentation and wastage.
+
+
+
+
+
+
+
+
+
+AllocateSpan
+    中把serch block和grow的逻辑分离出去了，非常清晰
+
+SearchFreeAndLargeLists 
+    对每个符合尺寸的spanlist
+        搜索normal
+            找到返回Carve
+        搜索returned
+            找到返回Carve
+    allocatelarge
+
+Carve
+This Carve function seems to be part of a custom memory allocator, particularly for a system that deals with spans (continuous blocks of memory pages). The function aims to "carve out" a smaller span of length n from a larger span. If the carved span leaves some excess space, that excess space becomes another smaller span. Let's break down the function:
+
+Function Goal:
+Given a span and a requested number of pages (n), the function returns a span of size n and adjusts any remaining space as a leftover span.
+
+Steps:
+
+Assertions:
+
+Assert that the requested length n is greater than 0.
+Assert that the given span is not already in use.
+Remove Span From Free List:
+
+Remove the span from the free list since we are going to utilize it.
+Set its location as IN_USE.
+Determine Extra Pages:
+
+Calculate the number of extra pages in the span after carving out the requested n pages.
+Handling the Extra Pages:
+
+If there are extra pages left:
+Check if the span has another span on its right but not on its left. This is done by looking up the pagemap_ for adjacent span descriptors.
+Depending on this check, decide from which end of the span to carve out the requested pages. This logic addresses a specific optimization scenario for systems where memory grows downwards. The aim is to avoid wasting memory and allow for denser packing of memory.
+Create a leftover span using the extra pages.
+Update the given span and leftover span's properties appropriately.
+Record the leftover span and prepend it to the free list. This is done without attempting to merge it with other spans, as merging isn't needed in this scenario.
+Set the added time for the leftover span based on the original span's added time.
+Update Span Size:
+
+Set the number of pages for the original span to the requested length n.
+Check:
+
+Assert a check (perhaps some consistency or integrity check) to ensure that everything is okay after the operation.
+The logic within this function indicates a level of sophistication in memory management, particularly for optimizing the allocation of large, persistent memory blocks. The described scenario in the comments gives insights into avoiding certain pitfalls where memory could be wasted or inefficiently utilized.

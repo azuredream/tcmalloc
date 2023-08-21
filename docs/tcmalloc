@@ -1,0 +1,18 @@
+关于两个路线（allocate, free）的重要文件梳理
+TCMallocInternalMalloc -> fast_alloc() ->ret = tc_globals.cpu_cache().Allocate<Policy>(size_class);
+                    ->slow_alloc()
+    
+先看快速路径，从cpu_cache分配内存：
+    cpu_cache().Allocate<Policy>(size_class)
+
+------------------------------------------backend：
+allocate
+
+
+
+
+
+
+重要支线
+可配置
+内存统计
